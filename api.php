@@ -1,0 +1,114 @@
+<?php 
+
+require 'db.php';
+
+//To allow access in localhost
+header('Content-Type: application/json');
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS");
+
+
+switch($_SERVER['REQUEST_METHOD']){
+    case 'GET':
+        //ex: ?id=id - get specific todo
+        if(isset($_GET['id']) && !isset($_GET['complete'])){
+            getOneTodo($conn, $_GET['id']);
+        }
+        //noparam - get all todos
+        else{
+            getTodos($conn);
+        }
+        break;
+    case 'POST':
+        //ex: ?id=id - update todo
+        if($_GET['id'] !== null 
+            && $_POST['todo'] !== null 
+            && $_POST['complete'] !== null){
+            updateTodo($conn, $_GET['id'], $_POST['todo'], $_POST['complete']);
+        }
+        //noparam - add new todo
+        else{
+            addTodo($conn, $_POST['todo']);
+        }
+        break;
+    case 'DELETE':
+        //ex: ?id=id - delete todo
+        if($_GET['id'] !== null){
+            deleteTodo($conn, $_GET['id']);
+        }
+        break;
+}
+
+function getTodos($conn){
+    $sql = "SELECT * FROM todos";
+    $result = $conn->query($sql);
+    if ($result) {
+        $data = array();
+
+        while($row = $result->fetch_assoc()) {
+            $data[] = $row;
+        }
+
+        echo json_encode($data);
+    }else{
+        echo json_encode(["error" => mysqli_error($conn)]);
+    }
+}
+
+
+function getOneTodo($conn, $id) {
+    $sql = "SELECT * FROM todos WHERE id='$id'";
+    $result = $conn->query($sql);
+    if ($result) {
+        $data = array();
+        
+        while($row = $result->fetch_assoc()) {
+            $data[] = $row;
+        }
+
+        echo json_encode($data, JSON_PRETTY_PRINT);
+    }else{
+        echo json_encode(["error" => mysqli_error($conn)]);
+    }
+}
+
+function addTodo($conn, $todo){
+    $sql = "INSERT INTO todos(todo) VALUES('$todo')";
+    $result = $conn->query($sql);
+    if($result) {
+        echo json_encode(["success" => "Data Tabloya Eklendi!"]);
+    }else{
+        echo json_encode(["error" => mysqli_error($conn)]);
+    }
+}
+
+function updateTodo($conn, $id, $todo, $complete){
+    switch ($complete) {
+        case "true":
+            $complete = "1"; 
+            break;
+        
+        default:
+            $complete = "0";
+            break;
+    }
+
+    $sql = "UPDATE todos SET todo='$todo', completed=$complete WHERE id='$id'";
+    $result = $conn->query($sql);
+    if($result) {
+        getOneTodo($conn, $id);
+    }else{
+        echo json_encode(["error" => mysqli_error($conn)]);
+    }
+}
+
+function deleteTodo($conn, $id){
+    $sql = "DELETE FROM todos WHERE id='$id'";
+    $result = $conn->query($sql);
+    if($result) {
+        echo json_encode(["success" => "Data Tablodan Silindi !"]);
+    }else{
+        echo json_encode(["error" => mysqli_error($conn)]);
+    }
+}
+
